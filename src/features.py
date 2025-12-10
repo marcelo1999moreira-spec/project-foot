@@ -1,26 +1,26 @@
 import numpy as np
 import pandas as pd
 
-def extract_main_position(pos):
-    if isinstance(pos, str):
-        return pos.split(",")[0].strip()
-    return "Unknown"
 
-def build_base_features(df: pd.DataFrame) -> pd.DataFrame:
+def add_basic_features(df: pd.DataFrame) -> pd.DataFrame:
     """
     Apply basic cleaning and feature engineering to the raw dataframe.
-    Returns a new dataframe with engineered features.
     """
-    # Keep only rows with known market value
-    df = df.dropna(subset=["value_eur"]).copy()
+    # Keep only players with known market value
+    df = df.dropna(subset=["value_eur"])
 
-    # Main position
+    # Main position = first position in player_positions
+    def extract_main_position(pos):
+        if isinstance(pos, str):
+            return pos.split(",")[0].strip()
+        return "Unknown"
+
     df["main_position"] = df["player_positions"].apply(extract_main_position)
 
     # Growth potential
     df["growth_potential"] = df["potential"] - df["overall"]
 
-    # Value in millions
+    # Value in millions of euros
     df["value_million"] = df["value_eur"] / 1_000_000
 
     # BMI
@@ -36,7 +36,7 @@ def build_base_features(df: pd.DataFrame) -> pd.DataFrame:
         labels=["<20", "20-25", "25-30", "30-35", "35+"]
     )
 
-    # Offensive / defensive indices
+    # Offensive and defensive indices
     offensive_stats = [c for c in ["pace", "shooting", "passing", "dribbling"] if c in df.columns]
     defensive_stats = [c for c in ["defending", "physic"] if c in df.columns]
 
@@ -52,10 +52,11 @@ def build_base_features(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-def build_model_dataset(df: pd.DataFrame):
+
+def prepare_model_dataset(df: pd.DataFrame):
     """
-    Build the modeling dataset: df_model, X, y, player_names,
-    and the lists of numerical and categorical columns.
+    Build df_model, select numerical & categorical columns,
+    and construct X, y and player_names.
     """
     base_cols_to_keep = ["short_name", "main_position", "value_million"]
 
@@ -64,21 +65,15 @@ def build_model_dataset(df: pd.DataFrame):
         "overall", "potential", "growth_potential",
         "pace", "shooting", "passing",
         "dribbling", "defending", "physic",
-        "bmi", "offensive_index", "defensive_index"
+        "bmi", "offensive_index", "defensive_index",
     ]
-
-    # Keep only existing numerical columns
     numerical_cols = [c for c in numerical_cols if c in df.columns]
     categorical_cols = ["main_position"]
 
-    df_model = df[base_cols_to_keep + numerical_cols].dropna().copy()
+    df_model = df[base_cols_to_keep + numerical_cols].dropna()
 
     X = df_model[numerical_cols + categorical_cols]
     y = df_model["value_million"]
     player_names = df_model["short_name"]
 
-    print("\nModeling dataframe shape:", df_model.shape)
-    print("Numerical columns used:", numerical_cols)
-    print("Categorical columns used:", categorical_cols)
-
-    return df_model, X, y, player_names, numerical_cols, categorical_cols
+    return df_model, numerical_cols, categorical_cols, X, y, player_names

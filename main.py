@@ -1,84 +1,73 @@
-import pandas as pd
-import joblib
+from pathlib import Path
 
 from src.data_loader import load_raw_data
-from src.features import build_base_features, build_model_dataset
+from src.features import add_basic_features, prepare_model_dataset
 from src.eda import run_basic_eda
-from src.modeling import get_models
-from src.training import build_preprocessor, train_and_evaluate_models, tune_random_forest_if_best
-from src.interpretation import analyze_errors, plot_feature_importance
-from src.prediction import predict_player_value, compare_two_players
+from src.modeling import get_preprocessor, get_models
+from src.training import train_and_select_model, tune_best_random_forest, save_model
+from src.evaluation import analyze_errors, plot_feature_importance, save_results_table
+from src.prediction import demo_predictions
 
-from sklearn.model_selection import train_test_split
 
 def main():
-    # 1. Load raw data
-    df_raw = load_raw_data()
+    base_dir = Path(__file__).resolve().parent
 
-    # 2. Feature engineering
-    df_fe = build_base_features(df_raw)
+    # Create results folders
+    results_dir = base_dir / "results"
+    figures_dir = results_dir / "figures"
+    models_dir = results_dir / "models"
+    for d in [results_dir, figures_dir, models_dir]:
+        d.mkdir(parents=True, exist_ok=True)
 
-    # (Optional) EDA – usually in a notebook, but can be called here
-    # run_basic_eda(df_fe)
+    print("\n[1] Loading raw data...")
+    df = load_raw_data(base_dir)
+    print("Raw data shape:", df.shape)
 
-    # 3. Build modeling dataset
-    df_model, X, y, player_names, numerical_cols, categorical_cols = build_model_dataset(df_fe)
+    print("\n[2] Feature engineering...")
+    df = add_basic_features(df)
+    df_model, numerical_cols, categorical_cols, X, y, player_names = prepare_model_dataset(df)
+    print("Modeling dataframe shape:", df_model.shape)
 
-    # 4. Train/test split
-    X_train, X_test, y_train, y_test, names_train, names_test = train_test_split(
-        X, y, player_names,
-        test_size=0.2,
-        random_state=42
-    )
+    print("\n[3] Running basic EDA (figures saved in results/figures)...")
+    run_basic_eda(df, figures_dir)
 
-    # 5. Preprocessor and models
-    preprocessor = build_preprocessor(numerical_cols, categorical_cols)
+    print("\n[4] Preparing models and preprocessor...")
+    preprocessor = get_preprocessor(numerical_cols, categorical_cols)
     models = get_models()
 
-    # 6. Train and evaluate all models
-    best_pipe, best_model_name, best_y_pred, results_df = train_and_evaluate_models(
-        models, preprocessor,
-        X_train, y_train,
-        X_test, y_test,
-        names_test
+    print("\n[5] Training and evaluating all models...")
+    (best_pipe,
+     best_model_name,
+     best_y_pred,
+     best_rmse,
+     results_df,
+     X_train,
+     X_test,
+     y_train,
+     y_test,
+     names_test) = train_and_select_model(
+        X, y, player_names, preprocessor, models, figures_dir
     )
 
-    # 7. Optional RandomForest tuning
-    tuned_pipe, tuned_y_pred = tune_random_forest_if_best(
-        best_model_name,
-        preprocessor,
-        X_train, y_train,
-        X_test, y_test
+    print("\n[6] Hyperparameter tuning (if best base model is Random Forest)...")
+    best_pipe, best_model_name, best_y_pred, best_rmse = tune_best_random_forest(
+        best_pipe, best_model_name, X_train, y_train, X_test, y_test, figures_dir
     )
 
-    if tuned_pipe is not None:
-        best_pipe = tuned_pipe
-        best_y_pred = tuned_y_pred
-        best_model_name = "Random Forest (tuned)"
+    print("\n[7] Saving results table and final model...")
+    save_results_table(results_df, results_dir)
+    model_path = save_model(best_pipe, models_dir, model_name="player_value_model.pkl")
+    print(f"Final model saved to: {model_path}")
 
-    # 8. Error analysis & feature importance
-    errors_df = analyze_errors(names_test, y_test, best_y_pred)
-    feat_imp = plot_feature_importance(best_model_name, best_pipe, numerical_cols, categorical_cols)
+    print("\n[8] Error analysis and feature importance...")
+    errors_df = analyze_errors(names_test, y_test, best_y_pred, figures_dir, results_dir)
+    plot_feature_importance(best_pipe, numerical_cols, categorical_cols, figures_dir)
 
-    # 9. Save final model
-    joblib.dump(best_pipe, "results/models/player_value_model.pkl")
-    print("\n✅ Final model saved to 'results/models/player_value_model.pkl'")
+    print("\n[9] Demo predictions on a few players...")
+    demo_predictions(df_model, best_pipe, numerical_cols, categorical_cols)
 
-    # 10. Example predictions
-    print("\n=== Example predictions ===")
-    example_names = df_model["short_name"].sample(3, random_state=1).tolist()
-    for name in example_names:
-        predict_player_value(name, df_model, best_pipe, numerical_cols, categorical_cols)
+    print("\n✅ Pipeline finished successfully.")
 
-    if len(df_model) >= 2:
-        name1, name2 = df_model["short_name"].iloc[0], df_model["short_name"].iloc[1]
-        compare_two_players(name1, name2, df_model, best_pipe, numerical_cols, categorical_cols)
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-

@@ -1,9 +1,11 @@
+from pathlib import Path
 import pandas as pd
 
-def load_raw_data(path: str = "data/raw/players_21.csv") -> pd.DataFrame:
+
+def load_raw_data(base_dir: Path) -> pd.DataFrame:
     """
-    Load the raw FIFA 21 players dataset from CSV.
+    Load the raw FIFA players dataset from data/raw/players_21.csv.
     """
-    df = pd.read_csv(path)
-    print("Initial dataset shape:", df.shape)
+    data_path = base_dir / "data" / "raw" / "players_21.csv"
+    df = pd.read_csv(data_path)
     return df
