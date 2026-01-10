@@ -11,7 +11,7 @@ You download the ZIP, there you can see the results.
 After you go to the terminal, and you do:
 
 git clone https://github.com/marcelo1999moreira-spec/Projet-foot.git
-cd Projet-foot
+cd Projet-foot (you need to put that! if not it doesn't run)
 
 \*\*\*CREATE ENVIRONMENT
 
@@ -71,25 +71,25 @@ Test MAE : 2.0233 M€
 Test RMSE : 3.8916 M€
 Test R² : 0.4663
 
-Model: ElasticNet 
+Model: ElasticNet
 CV RMSE (mean): 3.6955 M€ (+/- 0.3227)
 Test MAE : 2.0234 M€
 Test RMSE : 3.8919 M€
 Test R² : 0.4662
 
-Model: Decision Tree 
+Model: Decision Tree
 CV RMSE (mean): 1.2405 M€ (+/- 0.2219)
 Test MAE : 0.2755 M€
 Test RMSE : 1.0243 M€
 Test R² : 0.9630
 
-Model: Random Forest 
+Model: Random Forest
 CV RMSE (mean): 0.8758 M€ (+/- 0.1559)
 Test MAE : 0.1370 M€
 Test RMSE : 0.6078 M€
 Test R² : 0.9870
 
- Model: Gradient Boosting 
+Model: Gradient Boosting
 CV RMSE (mean): 0.7802 M€ (+/- 0.1036)
 Test MAE : 0.1749 M€
 Test RMSE : 0.5672 M€
