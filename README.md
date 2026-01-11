@@ -1,6 +1,6 @@
 Football Player Market Value Prediction
 
-"Which model can predict better the value of a player in the FIFA 21 dataset?"
+"Can we use the data-driven methods to estimate a player's market value based on observable characteristics ?"
 This project aims to predict professional football players’ market values using
 data from the FIFA 21 dataset.
 It combines exploratory data analysis, feature engineering, and machine learning
